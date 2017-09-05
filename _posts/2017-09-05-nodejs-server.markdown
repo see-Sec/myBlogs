@@ -78,4 +78,5 @@ G:\github\myBlogs\js>node app.js
 You can visit http://127.0.0.1:8080
 ```
 
-### 3. 通过浏览器访问代码中常量APP_ROOT_PATH对应路径下的静态文件，例如 http://127.0.0.1:8080/images/17-2-18/cer.png
+### 3. 通过浏览器访问
+可以访问代码中常量APP_ROOT_PATH对应路径下的静态文件，例如 http://127.0.0.1:8080/images/17-2-18/cer.png
